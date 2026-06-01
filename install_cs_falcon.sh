@@ -83,14 +83,16 @@ fi
 sensorVersions=$(curl -s -X GET -H "Authorization: Bearer ${accessToken}" -H 'Content-Type: application/json' \
 "$baseUrl/policy/combined/sensor-update-builds/v1?platform=mac&stage=prod")
 
+# 2025-02-21 Crowdstrike added " (LTS)" to the end of the sensor version for LTS builds. Now grabbing everything before a space.
 if [[ ${osversMajor} -ge 15 ]]; then
-  sensorVersion=$(/usr/bin/jq -r 'first(.resources[] | select(.build|test("\\|n-1\\|")) | .sensor_version)' <<< "${sensorVersions}")
+  sensorVersion=$(/usr/bin/jq -r 'first(.resources[] | select(.build|test("\\|n-1\\|")) | .sensor_version)' <<< "${sensorVersions}" | awk '{print $1}')
 else
+  #sensorVersion=$(grep -A1 -E '\"build\":.+\|n-1\|' <<< "${sensorVersions}" | tail -n 1 | grep -E '\"sensor_version\"' | awk -F':' '{print $NF}' | awk -F'"' '{print $2}')
   sensorCount=$(($(/usr/bin/plutil -extract "resources" raw -o - - <<< "${sensorVersions}")-1))
   for sensor in {0.."${sensorCount}"}; do
     sensorCandidate=$(/usr/bin/plutil -extract "resources"."${sensor}".build raw -o - - <<< "${sensorVersions}")
     if [[ "${sensorCandidate}" =~ '\|n-1\|' ]]; then
-      sensorVersion=$(/usr/bin/plutil -extract "resources"."${sensor}".sensor_version raw -o - - <<< "${sensorVersions}")
+      sensorVersion=$(/usr/bin/plutil -extract "resources"."${sensor}".sensor_version raw -o - - <<< "${sensorVersions}" | awk '{print $1}')
       continue
     fi
   done
