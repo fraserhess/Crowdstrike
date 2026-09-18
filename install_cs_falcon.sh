@@ -8,6 +8,17 @@ baseUrl='https://api.us-2.crowdstrike.com'
 CLIENT_ID="${4}"
 CLIENT_SECRET="${5}"
 
+targetVersion="${6}"
+
+case "${targetVersion}" in
+  n|n-1|n-2)
+    # valid values
+    ;;
+  *)
+    targetVersion="n-1"
+    ;;
+esac
+
 osversMajor=$(sw_vers -productVersion | awk -F. '{print $1}')
 
 appName="Falcon.app"
@@ -86,20 +97,20 @@ sensorVersions=$(curl -s -X GET -H "Authorization: Bearer ${accessToken}" -H 'Co
 
 # 2025-02-21 Crowdstrike added " (LTS)" to the end of the sensor version for LTS builds. Now grabbing everything before a space.
 if [[ ${osversMajor} -ge 15 ]]; then
-  sensorVersion=$(/usr/bin/jq -r 'first(.resources[] | select(.build|test("\\|n-1\\|")) | .sensor_version)' <<< "${sensorVersions}" | awk '{print $1}')
+  sensorVersion=$(/usr/bin/jq -r 'first(.resources[] | select(.build|test("\\|'"${targetVersion}"'\\|")) | .sensor_version)' <<< "${sensorVersions}" | awk '{print $1}')
 else
   #sensorVersion=$(grep -A1 -E '\"build\":.+\|n-1\|' <<< "${sensorVersions}" | tail -n 1 | grep -E '\"sensor_version\"' | awk -F':' '{print $NF}' | awk -F'"' '{print $2}')
   sensorCount=$(($(/usr/bin/plutil -extract "resources" raw -o - - <<< "${sensorVersions}")-1))
   for sensor in {0.."${sensorCount}"}; do
     sensorCandidate=$(/usr/bin/plutil -extract "resources"."${sensor}".build raw -o - - <<< "${sensorVersions}")
-    if [[ "${sensorCandidate}" =~ '\|n-1\|' ]]; then
+    if [[ "${sensorCandidate}" =~ "\|${targetVersion}\|" ]]; then
       sensorVersion=$(/usr/bin/plutil -extract "resources"."${sensor}".sensor_version raw -o - - <<< "${sensorVersions}" | awk '{print $1}')
       continue
     fi
   done
 fi
 
-echo "N-1 sensor version: ${sensorVersion}"
+echo "${targetVersion} sensor version: ${sensorVersion}"
 
 sensors=$(curl -s -X GET -H "Authorization: Bearer ${accessToken}" -H 'Content-Type: application/json' \
 "${baseUrl}/sensors/combined/installers/v2?filter=platform%3A%22mac%22%2Bos%3A%22macOS%22%2Bversion%3A%22${sensorVersion}%22")
@@ -109,7 +120,7 @@ if [[ ${osversMajor} -ge 15 ]]; then
 else
   sensor_sha256=$(/usr/bin/plutil -extract "resources".0."sha256" raw -o - - <<< "${sensors}")
 fi
-echo "N-1 sensor sha256: ${sensor_sha256}"
+echo "${targetVersion} sensor sha256: ${sensor_sha256}"
 
 # Download pkg file into tmp dir (60 second timeouet)
 tryDownloadState=0
