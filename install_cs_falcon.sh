@@ -7,8 +7,8 @@ baseUrl='https://api.us-2.crowdstrike.com'
 
 CLIENT_ID="${4}"
 CLIENT_SECRET="${5}"
-
 targetVersion="${6}"
+configurationProfileUUID="${7}"
 
 case "${targetVersion}" in
   n|n-1|n-2)
@@ -18,6 +18,13 @@ case "${targetVersion}" in
     targetVersion="n-1"
     ;;
 esac
+
+if [[ -n "${configurationProfileUUID}" ]]; then
+  if ! /usr/bin/profiles list | /usr/bin/grep -q "${configurationProfileUUID}"; then
+    echo "Required system extension configuration profile not found"
+    exit 1
+  fi
+fi
 
 osversMajor=$(sw_vers -productVersion | awk -F. '{print $1}')
 
