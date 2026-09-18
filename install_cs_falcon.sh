@@ -1,6 +1,7 @@
 #!/bin/zsh
-
-# Download and install the n-1 version of crowdstrike falcon for macOS. macOS 12+ only.
+# install_cs_falcon.sh
+# Chad Brewer
+# Download and install CrowdStrike Falcon for macOS. macOS 12+ only.
 
 baseUrl='https://api.us-2.crowdstrike.com'
 
