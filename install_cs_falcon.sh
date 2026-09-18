@@ -5,8 +5,8 @@
 
 baseUrl='https://api.us-2.crowdstrike.com'
 
-CLIENT_ID='{your_client_id}'
-CLIENT_SECRET='{your_client_secret}'
+CLIENT_ID="${4}"
+CLIENT_SECRET="${5}"
 
 osversMajor=$(sw_vers -productVersion | awk -F. '{print $1}')
 
